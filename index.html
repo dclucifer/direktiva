@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Direktiva Studio: AI Content Suite</title>
+    <meta name="description" content="An AI-powered content generation studio to create scripts, visual prompts, and voice-overs for various social media platforms like Shopee, TikTok, YouTube, and Instagram. Streamline your content creation workflow with customizable presets, AI personas, and multiple export options.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style type="text/css">
+        @font-face {
+            font-family: 'Clash Display';
+            src: url('https://cdn.jsdelivr.net/gh/webfontworld/clash-display/ClashDisplay-Bold.woff2') format('woff2');
+            font-weight: 700;
+            font-style: normal;
+            font-display: swap;
+        }
+        :root {
+            /* Light theme variables (Teal) */
+            --color-primary-50: 240 253 250; /* teal-50 */
+            --color-primary-100: 204 251 241; /* teal-100 */
+            --color-primary-200: 167 243 235; /* teal-200 */
+            --color-primary-600: 13 148 136;   /* teal-600 */
+            --color-primary-700: 15 118 110;   /* teal-700 */
+            --color-primary-900: 19 78 74;    /* teal-900 */
+            --color-background: 248 250 252; /* slate-50 */
+            --color-component-background: 255 255 255; /* white */
+            --color-border: 226 232 240; /* slate-200 */
+            --color-basetext: 30 41 59; /* slate-800 */
+            --color-subtext: 100 116 139; /* slate-500 */
+        }
+        .dark {
+            /* Dark theme variables (Indigo/Violet) */
+            --color-primary-50: 239 246 255;  /* indigo-50 */
+            --color-primary-100: 224 231 255; /* indigo-100 */
+            --color-primary-200: 199 210 254; /* indigo-200 */
+            --color-primary-600: 79 70 229;   /* indigo-600 */
+            --color-primary-700: 67 56 202;   /* indigo-700 */
+            --color-primary-900: 49 46 129;   /* indigo-900 */
+            --color-background: 3 7 18;       /* slate-950 */
+            --color-component-background: 15 23 42; /* slate-900 */
+            --color-border: 51 65 85;     /* slate-700 */
+            --color-basetext: 226 232 240;  /* slate-200 */
+            --color-subtext: 148 163 184; /* slate-400 */
+        }
+        body {
+            background-color: rgb(var(--color-background));
+            color: rgb(var(--color-basetext));
+        }
+        h1, h2, h3, h4, h5, h6 {
+            letter-spacing: -0.02em;
+        }
+    </style>
+    
+    <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            clash: ['Clash Display', 'sans-serif'],
+          },
+          colors: {
+            primary: {
+                50: 'rgb(var(--color-primary-50) / <alpha-value>)',
+                100: 'rgb(var(--color-primary-100) / <alpha-value>)',
+                200: 'rgb(var(--color-primary-200) / <alpha-value>)',
+                600: 'rgb(var(--color-primary-600) / <alpha-value>)',
+                700: 'rgb(var(--color-primary-700) / <alpha-value>)',
+                900: 'rgb(var(--color-primary-900) / <alpha-value>)',
+            },
+            background: 'rgb(var(--color-background) / <alpha-value>)',
+            'component-background': 'rgb(var(--color-component-background) / <alpha-value>)',
+            'border-color': 'rgb(var(--color-border) / <alpha-value>)',
+            basetext: 'rgb(var(--color-basetext) / <alpha-value>)',
+            subtext: 'rgb(var(--color-subtext) / <alpha-value>)',
+          },
+          keyframes: {
+            fadeIn: {
+                '0%': { opacity: '0' },
+                '100%': { opacity: '1' },
+            },
+            slideUp: {
+                '0%': { transform: 'translateY(20px)', opacity: '0' },
+                '100%': { transform: 'translateY(0)', opacity: '1' },
+            },
+            pulse: {
+                '50%': { opacity: '.5' },
+            },
+            slideInFromRight: {
+                '0%': { transform: 'translateX(30px)', opacity: '0' },
+                '100%': { transform: 'translateX(0)', opacity: '1' },
+            },
+            slideInFromLeft: {
+                '0%': { transform: 'translateX(-30px)', opacity: '0' },
+                '100%': { transform: 'translateX(0)', opacity: '1' },
+            },
+          },
+          animation: {
+            fadeIn: 'fadeIn 0.5s ease-in-out',
+            slideUp: 'slideUp 0.5s ease-out',
+            pulse: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            slideInFromRight: 'slideInFromRight 0.4s ease-out',
+            slideInFromLeft: 'slideInFromLeft 0.4s ease-out',
+          }
+        }
+      }
+    }
+    </script>
+    
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://aistudiocdn.com/react@^19.1.1",
+        "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
+        "react/": "https://aistudiocdn.com/react@^19.1.1/",
+        "@google/genai": "https://aistudiocdn.com/@google/genai@^1.17.0",
+        "uuid": "https://aistudiocdn.com/uuid@^13.0.0",
+        "file-saver": "https://aistudiocdn.com/file-saver@^2.0.5",
+        "jszip": "https://aistudiocdn.com/jszip@^3.10.1"
+      }
+    }
+    </script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+</body>
+</html>

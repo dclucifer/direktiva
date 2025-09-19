@@ -1,0 +1,7 @@
+{
+  "name": "Copy of Direktiva Studio: AI Content Suite",
+  "description": "An AI-powered content generation studio to create scripts, visual prompts, and voice-overs for various social media platforms like Shopee, TikTok, YouTube, and Instagram. Streamline your content creation workflow with customizable presets, AI personas, and multiple export options.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
