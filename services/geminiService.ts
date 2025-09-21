@@ -1,9 +1,5 @@
 
 
-
-
-
-
 import { GoogleGenAI, Type, Modality, GenerateContentResponse } from "@google/genai";
 import { 
     GenerationInput, 
@@ -149,9 +145,9 @@ const fileToGenerativePart = async (file: File) => {
 };
 
 /**
- * Implements a strict two-step pipeline to ensure face and product consistency.
- * Step 1: Create a high-fidelity "master composite" of the subject and product.
- * Step 2: Place that master composite into various scenes.
+ * Implements the "Identity Anchor Protocol" for maximum facial consistency and creative freedom.
+ * Step 1: "Identity Anchor Creation" creates a single, perfect headshot that correctly fuses the subject's face with headwear (e.g., hijab).
+ * Step 2: "Photoshoot Expansion" uses that anchor image as the non-negotiable source of truth for the face to generate 5 completely new, dynamic scenes.
  */
 export const generateProductPhoto = async (
     imageParts: { [key: string]: { mimeType: string, data: string } },
@@ -169,79 +165,73 @@ export const generateProductPhoto = async (
         throw new Error("A main product image is required for this operation.");
     }
 
-    // --- STEP 1: CREATE THE BASE "MASTER COMPOSITE" ---
-    const baseCompositePrompt = `
-**PROTOCOL: BASE COMPOSITE GENERATION (v14.0 - Step 1/2)**
+    // --- STEP 1: CREATE THE "IDENTITY ANCHOR" IMAGE ---
+    // Goal: Create one perfect, clean AI headshot that correctly combines the subject's face with the hijab (or other headwear).
+    // This removes the primary identity conflict for all subsequent steps.
+    const identityAnchorParts: any[] = [{ inlineData: imageParts.subject }];
+    // The hijab is often product2 in the user's case
+    const headwearProduct = imageParts.product2 || imageParts.product3;
+    if (headwearProduct) {
+        identityAnchorParts.push({ inlineData: headwearProduct });
+    }
 
-**TASK:** Your sole objective is to create a single, ultra-photorealistic, full-body studio portrait.
-1.  **PERSON:** Use the exact person from **[IMAGE 1: SUBJECT]**. Replicate their face, hair, and identity with 100% accuracy.
-2.  **CLOTHING:** Dress this person in the exact clothing from **[IMAGE 2: PRODUCT]**. Replicate the product's design, pattern, and fit with 100% accuracy.
-3.  **BACKGROUND:** Place them against a neutral, plain, light gray studio background.
-4.  **POSE:** The person should be standing, facing the camera with a neutral, pleasant expression.
-5.  **OUTPUT:** The final image is the definitive "source of truth" for the character's appearance. Do not add any other elements.
-`;
+    const identityAnchorPrompt = `
+        **CRITICAL DIRECTIVE: IDENTITY ANCHOR CREATION v5.0**
+        1.  **PRIMARY GOAL:** Create a new, photorealistic, forward-facing portrait (head and shoulders only).
+        2.  **NON-NEGOTIABLE IDENTITY LOCK:** The generated portrait MUST have the **exact same face** as the person in the [FIRST/SUBJECT IMAGE]. This is the highest priority. Replicate every facial feature with 100% accuracy. Do NOT create a 'similar' face; create the *same* face.
+        ${headwearProduct ? `3. **HEADWEAR INTEGRATION:** The woman MUST be wearing the headwear (e.g., hijab) from the [SECOND IMAGE]. Fit it to her head naturally and realistically.` : ''}
+        4.  **CLEAN EXECUTION:** The background MUST be a clean, uniform, light-gray professional studio backdrop. Lighting should be soft and even (softbox lighting). The expression should be neutral and pleasant.
+    `;
+    identityAnchorParts.push({ text: identityAnchorPrompt });
     
-    const step1Parts = [
-        { inlineData: imageParts.subject },
-        { inlineData: imageParts.mainProduct },
-        { text: baseCompositePrompt }
-    ];
-
-    const baseCompositeResponse = await ai.models.generateContent({
+    const identityAnchorResponse = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image-preview',
-        contents: { parts: step1Parts },
+        contents: { parts: identityAnchorParts },
         config: { responseModalities: [Modality.IMAGE, Modality.TEXT] },
     });
 
-    const baseCompositePart = baseCompositeResponse.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
-    if (!baseCompositePart?.inlineData?.data) {
-        throw new Error("Failed to create the base character composite in Step 1. Please ensure the subject and product images are clear and high-quality.");
+    const identityAnchorImagePart = identityAnchorResponse.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+    if (!identityAnchorImagePart?.inlineData) {
+        throw new Error("Critical failure: The AI could not create the initial 'Identity Anchor' image. This might be due to conflicting images or the AI being unable to isolate the face. Please try again with a clearer, front-facing subject photo.");
     }
-    
-    const masterCompositeImage = {
-        mimeType: baseCompositePart.inlineData.mimeType || 'image/png',
-        data: baseCompositePart.inlineData.data
-    };
+    const identityAnchorImage = identityAnchorImagePart.inlineData;
 
+    // --- STEP 2: PHOTOSHOOT EXPANSION ---
+    // Goal: Use the perfect Identity Anchor image as an unalterable reference to generate 5 genuinely different and dynamic scenes.
+    const styleInstruction = stylePrompt || 'The final images must be ultra-photorealistic, indistinguishable from a professional photograph from a high-end brand campaign.';
 
-    // --- STEP 2: PLACE THE MASTER COMPOSITE INTO VARIOUS SCENES ---
-    const defaultStyleInstruction = 'The final images must be ultra-photorealistic, indistinguishable from a professional photograph from a high-end brand campaign.';
-    const styleInstruction = stylePrompt || defaultStyleInstruction;
-    
     const scenarios = [
-        { name: 'Street Style', prompt: `A full-length shot of the model walking confidently on a modern city street, blurred background of shops and palm trees. The mood is chic and bright.` },
-        { name: 'Cafe Lifestyle', prompt: `A medium shot of the model sitting in a bright, modern cafe by a large window, holding a coffee cup and smiling gently, looking just off-camera. The lighting is soft and natural.` },
-        { name: 'Studio Dynamic', prompt: `A full-length studio shot against a solid, vibrant colored background (e.g., pastel blue or gradient). The model has a joyful, laughing expression. The lighting is bright and commercial.` },
-        { name: 'Elegant Detail', prompt: `A close-up "detail" shot, focusing on the texture and pattern on the shoulder of the clothing. The model's face is partially in frame, turned three-quarters, softly out of focus. The mood is elegant and focused on quality.` },
-        { name: 'Indoor Grace', prompt: `A three-quarter shot of the model standing in a minimalist apartment, looking gracefully out of a large window. Sunlight creates a soft, hazy glow.` }
+        { name: 'Street Style', prompt: `A full-length, dynamic street style shot. The woman is walking confidently towards the camera on a modern, clean city street with a blurred background of shops and palm trees. The mood is chic and energetic.` },
+        { name: 'Cafe Lifestyle', prompt: `A medium shot. The woman is sitting in a bright, modern cafe by a large window, holding a coffee cup and smiling gently, looking just off-camera. The lighting is soft and natural.` },
+        { name: 'Studio Dynamic', prompt: `A full-length studio shot against a solid, vibrant colored background (e.g., pastel blue or gradient). The woman is spinning playfully, causing her abaya to flare out elegantly. She is laughing joyfully.` },
+        { name: 'Elegant Detail', prompt: `A close-up "detail" shot. The camera is focused on the texture and embroidery on the shoulder of the clothing. The woman's face is partially in the frame, turned three-quarters, softly out of focus in the background. The mood is elegant and focused on quality.` },
+        { name: 'Indoor Grace', prompt: `A three-quarter shot. The woman is standing in a beautifully decorated, minimalist apartment, looking gracefully out of a large window. The sunlight creates a soft glow around her.` }
     ];
 
     const generationPromises = scenarios.map(scenario => {
-        const sceneDescription = backgroundPrompt
-            ? `The background MUST be: "${backgroundPrompt}". The overall scene, pose, and composition should be inspired by this theme: "${scenario.prompt}"`
-            : scenario.prompt;
-
-        const scenePlacementPrompt = `
-**PROTOCOL: SCENE PLACEMENT (v14.0 - Step 2/2)**
-
-**TASK:** Your sole objective is to place the character from the provided **[MASTER IMAGE]** into a new environment.
-1.  **CHARACTER SOURCE:** The person and their clothing in the **[MASTER IMAGE]** are locked and are the single source of truth. DO NOT change their face, hair, or the clothing design in any way.
-2.  **NEW SCENE:** Place this character into the following scene: "${sceneDescription}".
-3.  **INTEGRATION:** Flawlessly blend the character into the new scene by adjusting only the lighting and shadows to match the environment.
-4.  **AESTHETIC:** Apply this style meticulously: ${styleInstruction}
-5.  **ADDITIONAL INSTRUCTIONS:** ${additionalInstructions || 'None.'}
-
-**CRITICAL FAILURE CONDITION:** Any deviation from the character's facial features or clothing in the [MASTER IMAGE] is a total failure.
-`;
+        const expansionPrompt = `
+            **CRITICAL DIRECTIVE: SCENE EXPANSION WITH IDENTITY ANCHOR v5.0**
+            1.  **SOURCE OF TRUTH (FACE):** The provided [FIRST IMAGE - Identity Anchor] contains the character's head and face. This is the unalterable source of truth for the person's identity.
+            2.  **IDENTITY & HEADWEAR LOCK (NON-NEGOTIABLE):** The woman in the new image (her face AND the headwear she is wearing) MUST be 100% identical to the person in the [FIRST IMAGE - Identity Anchor]. Do NOT change her appearance in any way.
+            3.  **OUTFIT SOURCE:** The woman must be wearing the main clothing item (e.g., abaya) from the [SECOND IMAGE - Main Product].
+            4.  **NEW SCENE & POSE:** Create a completely new image based on the following scenario: "${scenario.prompt}". The pose and environment MUST be new and match this description.
+            5.  **SEAMLESS FUSION:** Flawlessly combine the head from the Identity Anchor onto a new body wearing the main product, placed within the new scene. The final result must be a single, seamless, photorealistic photograph.
+            6.  **STYLE:** ${styleInstruction}
+            7.  **Additional Instructions:** ${additionalInstructions || 'None.'}
+        `;
         
-        const step2Parts = [
-            { inlineData: masterCompositeImage },
-            { text: scenePlacementPrompt }
+        const parts = [
+            { inlineData: identityAnchorImage },
+            { inlineData: imageParts.mainProduct },
+            { text: expansionPrompt }
         ];
-
+        // Add other products if they exist and aren't the headwear
+        if(imageParts.product2 && imageParts.product2 !== headwearProduct) parts.push({ inlineData: imageParts.product2 });
+        if(imageParts.product3 && imageParts.product3 !== headwearProduct) parts.push({ inlineData: imageParts.product3 });
+        
         return ai.models.generateContent({
             model: 'gemini-2.5-flash-image-preview',
-            contents: { parts: step2Parts },
+            contents: { parts },
             config: { responseModalities: [Modality.IMAGE, Modality.TEXT] },
         });
     });
